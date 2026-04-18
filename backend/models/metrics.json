@@ -1,0 +1,10 @@
+{
+  "val_loss": 0.16959385573863983,
+  "val_accuracy": 0.94429612159729,
+  "num_classes": 38,
+  "epochs_trained": 6,
+  "img_size": 192,
+  "batch_size": 32,
+  "fine_tuned": false,
+  "fine_tune_layers": 0
+}

@@ -1,0 +1,7 @@
+# Training and inference extras for AI model work
+# Use Python 3.10 or 3.11 for TensorFlow compatibility.
+
+tensorflow==2.16.1
+numpy==1.26.4
+matplotlib==3.9.0
+scikit-learn==1.5.1

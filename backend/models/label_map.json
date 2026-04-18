@@ -1,0 +1,230 @@
+[
+  {
+    "index": 0,
+    "class_name": "Apple___Apple_scab",
+    "plant_name": "Apple",
+    "disease_name": "Apple scab"
+  },
+  {
+    "index": 1,
+    "class_name": "Apple___Black_rot",
+    "plant_name": "Apple",
+    "disease_name": "Black rot"
+  },
+  {
+    "index": 2,
+    "class_name": "Apple___Cedar_apple_rust",
+    "plant_name": "Apple",
+    "disease_name": "Cedar apple rust"
+  },
+  {
+    "index": 3,
+    "class_name": "Apple___healthy",
+    "plant_name": "Apple",
+    "disease_name": "healthy"
+  },
+  {
+    "index": 4,
+    "class_name": "Blueberry___healthy",
+    "plant_name": "Blueberry",
+    "disease_name": "healthy"
+  },
+  {
+    "index": 5,
+    "class_name": "Cherry_(including_sour)___Powdery_mildew",
+    "plant_name": "Cherry (including sour)",
+    "disease_name": "Powdery mildew"
+  },
+  {
+    "index": 6,
+    "class_name": "Cherry_(including_sour)___healthy",
+    "plant_name": "Cherry (including sour)",
+    "disease_name": "healthy"
+  },
+  {
+    "index": 7,
+    "class_name": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+    "plant_name": "Corn (maize)",
+    "disease_name": "Cercospora leaf spot Gray leaf spot"
+  },
+  {
+    "index": 8,
+    "class_name": "Corn_(maize)___Common_rust_",
+    "plant_name": "Corn (maize)",
+    "disease_name": "Common rust"
+  },
+  {
+    "index": 9,
+    "class_name": "Corn_(maize)___Northern_Leaf_Blight",
+    "plant_name": "Corn (maize)",
+    "disease_name": "Northern Leaf Blight"
+  },
+  {
+    "index": 10,
+    "class_name": "Corn_(maize)___healthy",
+    "plant_name": "Corn (maize)",
+    "disease_name": "healthy"
+  },
+  {
+    "index": 11,
+    "class_name": "Grape___Black_rot",
+    "plant_name": "Grape",
+    "disease_name": "Black rot"
+  },
+  {
+    "index": 12,
+    "class_name": "Grape___Esca_(Black_Measles)",
+    "plant_name": "Grape",
+    "disease_name": "Esca (Black Measles)"
+  },
+  {
+    "index": 13,
+    "class_name": "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+    "plant_name": "Grape",
+    "disease_name": "Leaf blight (Isariopsis Leaf Spot)"
+  },
+  {
+    "index": 14,
+    "class_name": "Grape___healthy",
+    "plant_name": "Grape",
+    "disease_name": "healthy"
+  },
+  {
+    "index": 15,
+    "class_name": "Orange___Haunglongbing_(Citrus_greening)",
+    "plant_name": "Orange",
+    "disease_name": "Haunglongbing (Citrus greening)"
+  },
+  {
+    "index": 16,
+    "class_name": "Peach___Bacterial_spot",
+    "plant_name": "Peach",
+    "disease_name": "Bacterial spot"
+  },
+  {
+    "index": 17,
+    "class_name": "Peach___healthy",
+    "plant_name": "Peach",
+    "disease_name": "healthy"
+  },
+  {
+    "index": 18,
+    "class_name": "Pepper,_bell___Bacterial_spot",
+    "plant_name": "Pepper  bell",
+    "disease_name": "Bacterial spot"
+  },
+  {
+    "index": 19,
+    "class_name": "Pepper,_bell___healthy",
+    "plant_name": "Pepper  bell",
+    "disease_name": "healthy"
+  },
+  {
+    "index": 20,
+    "class_name": "Potato___Early_blight",
+    "plant_name": "Potato",
+    "disease_name": "Early blight"
+  },
+  {
+    "index": 21,
+    "class_name": "Potato___Late_blight",
+    "plant_name": "Potato",
+    "disease_name": "Late blight"
+  },
+  {
+    "index": 22,
+    "class_name": "Potato___healthy",
+    "plant_name": "Potato",
+    "disease_name": "healthy"
+  },
+  {
+    "index": 23,
+    "class_name": "Raspberry___healthy",
+    "plant_name": "Raspberry",
+    "disease_name": "healthy"
+  },
+  {
+    "index": 24,
+    "class_name": "Soybean___healthy",
+    "plant_name": "Soybean",
+    "disease_name": "healthy"
+  },
+  {
+    "index": 25,
+    "class_name": "Squash___Powdery_mildew",
+    "plant_name": "Squash",
+    "disease_name": "Powdery mildew"
+  },
+  {
+    "index": 26,
+    "class_name": "Strawberry___Leaf_scorch",
+    "plant_name": "Strawberry",
+    "disease_name": "Leaf scorch"
+  },
+  {
+    "index": 27,
+    "class_name": "Strawberry___healthy",
+    "plant_name": "Strawberry",
+    "disease_name": "healthy"
+  },
+  {
+    "index": 28,
+    "class_name": "Tomato___Bacterial_spot",
+    "plant_name": "Tomato",
+    "disease_name": "Bacterial spot"
+  },
+  {
+    "index": 29,
+    "class_name": "Tomato___Early_blight",
+    "plant_name": "Tomato",
+    "disease_name": "Early blight"
+  },
+  {
+    "index": 30,
+    "class_name": "Tomato___Late_blight",
+    "plant_name": "Tomato",
+    "disease_name": "Late blight"
+  },
+  {
+    "index": 31,
+    "class_name": "Tomato___Leaf_Mold",
+    "plant_name": "Tomato",
+    "disease_name": "Leaf Mold"
+  },
+  {
+    "index": 32,
+    "class_name": "Tomato___Septoria_leaf_spot",
+    "plant_name": "Tomato",
+    "disease_name": "Septoria leaf spot"
+  },
+  {
+    "index": 33,
+    "class_name": "Tomato___Spider_mites Two-spotted_spider_mite",
+    "plant_name": "Tomato",
+    "disease_name": "Spider mites Two-spotted spider mite"
+  },
+  {
+    "index": 34,
+    "class_name": "Tomato___Target_Spot",
+    "plant_name": "Tomato",
+    "disease_name": "Target Spot"
+  },
+  {
+    "index": 35,
+    "class_name": "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+    "plant_name": "Tomato",
+    "disease_name": "Tomato Yellow Leaf Curl Virus"
+  },
+  {
+    "index": 36,
+    "class_name": "Tomato___Tomato_mosaic_virus",
+    "plant_name": "Tomato",
+    "disease_name": "Tomato mosaic virus"
+  },
+  {
+    "index": 37,
+    "class_name": "Tomato___healthy",
+    "plant_name": "Tomato",
+    "disease_name": "healthy"
+  }
+]

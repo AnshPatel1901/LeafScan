@@ -1,0 +1,73 @@
+// LeafScan database schema for dbdiagram.io
+// Source: SQLAlchemy models + Alembic 0001_initial migration
+
+Project leafscan_v2 {
+  database_type: "PostgreSQL"
+  Note: "LeafScan backend relational schema"
+}
+
+Table users {
+  id uuid [pk, not null]
+  username varchar(64) [not null, unique]
+  password_hash varchar(256) [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: "Application users"
+
+  indexes {
+    (id) [name: "ix_users_id"]
+    (username) [name: "ix_users_username", unique]
+  }
+}
+
+Table uploads {
+  id uuid [pk, not null]
+  user_id uuid [not null]
+  image_url varchar(512) [not null]
+  uploaded_at timestamptz [not null, default: `now()`]
+
+  Note: "One uploaded image per record"
+
+  indexes {
+    (id) [name: "ix_uploads_id"]
+    (user_id) [name: "ix_uploads_user_id"]
+  }
+}
+
+Table predictions {
+  id uuid [pk, not null]
+  upload_id uuid [not null, unique]
+  plant_name varchar(128)
+  disease_name varchar(256)
+  confidence_score float
+  is_plant boolean [not null, default: false]
+  fallback_used boolean [not null, default: false]
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: "Prediction for an upload (1-to-1 with uploads)"
+
+  indexes {
+    (id) [name: "ix_predictions_id"]
+    (upload_id) [name: "ix_predictions_upload_id", unique]
+  }
+}
+
+Table ai_responses {
+  id uuid [pk, not null]
+  prediction_id uuid [not null]
+  language varchar(10) [not null, default: 'en']
+  precautions_text text
+  audio_url varchar(512)
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: "LLM response variants by language for a prediction"
+
+  indexes {
+    (id) [name: "ix_ai_responses_id"]
+    (prediction_id) [name: "ix_ai_responses_prediction_id"]
+  }
+}
+
+Ref: uploads.user_id > users.id [delete: cascade]
+Ref: predictions.upload_id - uploads.id [delete: cascade]
+Ref: ai_responses.prediction_id > predictions.id [delete: cascade]

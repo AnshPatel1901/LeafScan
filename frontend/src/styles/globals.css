@@ -1,0 +1,123 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS variables ─────────────────────────────────────────────────────────── */
+:root {
+  --font-fraunces: 'Fraunces', Georgia, serif;
+  --font-outfit:   'Outfit', system-ui, sans-serif;
+
+  /* Light mode */
+  --bg:         #f8f5ed;
+  --bg-card:    #ffffff;
+  --bg-subtle:  #f0ece0;
+  --border:     #ddd7c8;
+  --text:       #1a1a14;
+  --text-muted: #6b6557;
+  --green:      #2a6a46;
+  --green-light:#dff0e6;
+  --green-dark: #1c4430;
+  --accent:     #a3d977;
+}
+
+.dark {
+  --bg:         #0e1c12;
+  --bg-card:    #152019;
+  --bg-subtle:  #1a2a1e;
+  --border:     #2a3d2f;
+  --text:       #e8f0e3;
+  --text-muted: #8aa890;
+  --green:      #5da378;
+  --green-light:#1a3324;
+  --green-dark: #a3d977;
+  --accent:     #a3d977;
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────────── */
+html { scroll-behavior: smooth; }
+
+body {
+  font-family:      var(--font-outfit);
+  background-color: var(--bg);
+  color:            var(--text);
+  transition:       background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing:  antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Utility classes ─────────────────────────────────────────────────────────── */
+@layer components {
+  /* Cards */
+  .card {
+    @apply bg-white dark:bg-[#152019] border border-[#ddd7c8] dark:border-[#2a3d2f] rounded-2xl;
+  }
+
+  /* Inputs */
+  .input {
+    @apply w-full px-4 py-3 rounded-xl
+      bg-[#f0ece0] dark:bg-[#1a2a1e]
+      border border-[#ddd7c8] dark:border-[#2a3d2f]
+      text-[#1a1a14] dark:text-[#e8f0e3]
+      placeholder-[#6b6557] dark:placeholder-[#8aa890]
+      focus:outline-none focus:ring-2 focus:ring-forest-500 dark:focus:ring-forest-400
+      transition-all duration-200 font-body text-sm;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply px-6 py-3 rounded-xl font-body font-semibold text-sm
+      bg-forest-600 hover:bg-forest-700 dark:bg-forest-500 dark:hover:bg-forest-600
+      text-white
+      transition-all duration-200 active:scale-[0.98]
+      disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Ghost button */
+  .btn-ghost {
+    @apply px-6 py-3 rounded-xl font-body font-medium text-sm
+      border border-[#ddd7c8] dark:border-[#2a3d2f]
+      text-[#3d3d33] dark:text-[#c8d8c0]
+      hover:bg-[#f0ece0] dark:hover:bg-[#1a2a1e]
+      transition-all duration-200 active:scale-[0.98];
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+
+  /* Page heading */
+  .heading-display {
+    @apply font-display font-semibold tracking-tight;
+  }
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #3a855a44;
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover { background: #3a855a88; }
+
+/* ── Stagger animation helpers ───────────────────────────────────────────────── */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.10s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.20s; }
+.stagger-5 { animation-delay: 0.25s; }
+
+.opacity-0-start { opacity: 0; }
+
+/* ── Scan animation for AI processing ───────────────────────────────────────── */
+.scan-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #a3d977, #5da378, transparent);
+  filter: blur(1px);
+  animation: scan 1.8s ease-in-out infinite;
+}

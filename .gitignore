@@ -1,0 +1,75 @@
+# ── Python / Backend ─────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.so
+.venv/
+venv/
+env/
+ENV/
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Testing / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Uploads & ML models (never commit)
+backend/uploads/
+backend/models/*.h5
+backend/models/*.pt
+backend/models/*.onnx
+backend/.venv-ml/
+backend/.venv/
+plantvillage dataset/
+
+# Local workspace metadata / tooling
+.claude/
+
+
+# Alembic cache
+backend/alembic/versions/__pycache__/
+
+# ── Node / Frontend ───────────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+frontend/.next/
+frontend/out/
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── .md files ───────────────────────────────────────────────────────────────────
+*.md
+
+
+leafscan_schema.dbmld
+scripts.py.mako
+train_fast.bat
+latest.weights.h5
+.env.local.example
+package-lock.json
+package.json
