@@ -71,6 +71,7 @@ class PredictionService:
         user_id: UUID,
         image_bytes: bytes,
         image_url: str,
+        language: str = "en",
     ) -> PredictResponse:
         """
         Execute the full prediction pipeline.
@@ -83,6 +84,8 @@ class PredictionService:
             Raw image content (already validated by ImageService).
         image_url:
             Relative path stored in the DB (returned by ImageService).
+        language:
+            ISO 639-1 language code for the response (default: "en").
 
         Raises
         ------
@@ -187,12 +190,13 @@ class PredictionService:
             llm_result = await self._llm_svc.generate_precautions(
                 plant_name=plant_name,
                 disease_name=disease_name,
+                language=language,
             )
 
             # ── 7. Persist AI response ────────────────────────────────────────
             await self._ai_response_repo.create(
                 prediction_id=prediction.id,
-                language="en",
+                language=language,
                 precautions_text=llm_result.precautions_text,
                 audio_url=llm_result.audio_url,
             )
@@ -208,6 +212,7 @@ class PredictionService:
                 fallback_used=fallback_used,
                 precautions=llm_result.precautions_text,
                 audio_url=llm_result.audio_url,
+                language=language,
             )
         except AppException:
             raise

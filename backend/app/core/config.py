@@ -51,6 +51,12 @@ class Settings(BaseSettings):
     DISEASE_LABEL_MAP_PATH: str = "models/label_map.json"
     CONFIDENCE_THRESHOLD: float = 0.75
 
+    # ── Groq LLM (Primary) ───────────────────────────────────────────────────
+    # All Groq settings are configured in .env — change there to update model/key
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_API_URL: str = "https://api.groq.com/openai/v1/chat/completions"
+
     # ── Gemini (Fallback) ─────────────────────────────────────────────────────
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.0-flash"
@@ -59,7 +65,7 @@ class Settings(BaseSettings):
     )
 
     # ── LLM ───────────────────────────────────────────────────────────────────
-    LLM_PROVIDER: str = "gemini"
+    LLM_PROVIDER: str = "groq"
 
     # ── CORS ──────────────────────────────────────────────────────────────────
     # Comma-separated list of allowed origins, e.g.:

@@ -75,6 +75,7 @@ class PredictResponse(BaseModel):
     fallback_used: bool
     precautions: Optional[str]
     audio_url: Optional[str] = None
+    language: str = "en"  # ISO 639-1 language code used for precautions
 
 
 # ── History schemas ───────────────────────────────────────────────────────────

@@ -7,7 +7,7 @@ with LLM-generated precautions.
 
 import logging
 
-from fastapi import APIRouter, Depends, File, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
         "Upload a JPG/PNG image of a plant. "
         "The system will validate that it contains a plant, "
         "detect any disease using the CNN model (with Gemini Flash fallback), "
-        "and return disease precautions."
+        "and return disease precautions in the selected language."
     ),
 )
 async def predict(
@@ -49,6 +49,7 @@ async def predict(
         ...,
         description="Plant image file (JPG or PNG, max 10 MB)",
     ),
+    language: str = Form(default="en", description="ISO 639-1 language code (e.g., 'en', 'hi', 'ta')"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse[PredictResponse]:
@@ -87,6 +88,7 @@ async def predict(
             user_id=current_user.id,
             image_bytes=image_bytes,
             image_url=image_url,
+            language=language,
         )
 
         logger.info(

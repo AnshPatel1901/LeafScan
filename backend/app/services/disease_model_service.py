@@ -80,7 +80,9 @@ class DiseaseModelService:
         self, model_path: str = settings.DISEASE_MODEL_PATH
     ) -> None:
         self._model_path = model_path
-        self._model = self._load_model()
+        self._model = None  # Lazy-loaded on first use
+        self._model_loaded = False
+        self._model_load_error = None
         self._label_map = self._load_label_map()
 
     # ── Public API ─────────────────────────────────────────────────────────────
@@ -96,11 +98,36 @@ class DiseaseModelService:
             (triggers the Gemini fallback in PredictionService).
         """
         try:
+            # Lazy-load the model on first use
+            if not self._model_loaded:
+                self._ensure_model_loaded()
+            
+            # If model failed to load, return None to trigger fallback
+            if self._model is None:
+                logger.warning("Disease model not available; using fallback")
+                return None
+            
             preprocessed = self._preprocess(image_bytes)
             return await self._run_inference(preprocessed)
         except Exception as exc:
             logger.exception("Disease detection inference failed: %s", exc)
             return None  # Let PredictionService trigger fallback
+
+    def _ensure_model_loaded(self) -> None:
+        """Lazy-load the model on first use."""
+        if self._model_loaded:
+            return
+        
+        self._model_loaded = True
+        try:
+            self._model = self._load_model()
+            if self._model is None:
+                logger.warning("DiseaseModelService: model could not be loaded; will use Gemini fallback")
+                self._model_load_error = "Model file not found or TensorFlow not available"
+        except Exception as exc:
+            logger.error("DiseaseModelService: failed to load model: %s", exc)
+            self._model_load_error = str(exc)
+            self._model = None
 
     # ── Private helpers ────────────────────────────────────────────────────────
 
@@ -117,7 +144,7 @@ class DiseaseModelService:
         model_path = self._resolve_path(self._model_path)
         if not model_path.exists():
             logger.warning(
-                "DiseaseModelService: model file not found at %s; using fallback path",
+                "DiseaseModelService: model file not found at %s; will use Gemini fallback",
                 model_path,
             )
             return None
@@ -126,7 +153,7 @@ class DiseaseModelService:
             import tensorflow as tf
         except Exception as exc:
             logger.warning(
-                "DiseaseModelService: TensorFlow not available (%s); using fallback path",
+                "DiseaseModelService: TensorFlow not available (%s); will use Gemini fallback",
                 exc,
             )
             return None
@@ -136,9 +163,35 @@ class DiseaseModelService:
         except AttributeError:
             # Some environments expose TensorFlow ops but not tf.keras.
             # Fall back to standalone Keras package installed with TF 2.16+.
-            import keras
-
-            model = keras.models.load_model(model_path)
+            try:
+                import keras
+                model = keras.models.load_model(model_path)
+            except Exception as exc:
+                logger.error(
+                    "DiseaseModelService: Failed to load model with Keras: %s. "
+                    "This may be due to Keras/TensorFlow version mismatch. "
+                    "Will use Gemini fallback for predictions.",
+                    exc,
+                )
+                return None
+        except TypeError as exc:
+            # Handle Keras version compatibility issues (e.g., BatchNormalization params)
+            if "BatchNormalization" in str(exc) or "renorm" in str(exc):
+                logger.error(
+                    "DiseaseModelService: Keras model has incompatible parameters. "
+                    "This is likely due to TensorFlow/Keras version mismatch. "
+                    "The saved model was created with an older Keras version. "
+                    "Will use Gemini fallback for predictions. "
+                    "To fix: retrain the model with the current TensorFlow version."
+                )
+                return None
+            raise
+        except Exception as exc:
+            logger.error(
+                "DiseaseModelService: Failed to load model: %s. Will use Gemini fallback.",
+                exc,
+            )
+            return None
 
         # Align preprocessing size with the model's expected input shape.
         input_shape = getattr(model, "input_shape", None)
