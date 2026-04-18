@@ -49,17 +49,7 @@ class UploadSchema(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ── Predict request / response ────────────────────────────────────────────────
-
-
-class PredictRequest(BaseModel):
-    language: str = Field(
-        default="en",
-        min_length=2,
-        max_length=10,
-        description="ISO 639-1 language code for the response",
-        examples=["en", "hi", "ta", "mr"],
-    )
+# ── Predict response ──────────────────────────────────────────────────────────
 
 
 class PlantValidationResult(BaseModel):
@@ -75,13 +65,6 @@ class DiseaseDetectionResult(BaseModel):
     fallback_used: bool = False
 
 
-class RAGDocumentPreview(BaseModel):
-    source: str
-    page: Optional[int] = None
-    score: Optional[float] = None
-    preview: Optional[str] = None
-
-
 class PredictResponse(BaseModel):
     upload_id: UUID
     prediction_id: UUID
@@ -91,11 +74,7 @@ class PredictResponse(BaseModel):
     confidence_score: Optional[float]
     fallback_used: bool
     precautions: Optional[str]
-    language: str
     audio_url: Optional[str] = None
-    rag_answer: Optional[str] = None
-    rag_sources: List[str] = Field(default_factory=list)
-    rag_documents: List[RAGDocumentPreview] = Field(default_factory=list)
 
 
 # ── History schemas ───────────────────────────────────────────────────────────

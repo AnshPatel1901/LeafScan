@@ -7,7 +7,7 @@ Flow:
             → if not plant: raise NotAPlantError
         → run CNN disease model
             → if confidence < threshold OR model failure: Gemini fallback
-        → generate LLM precautions (multilingual)
+        → generate LLM precautions
         → persist everything to DB
         → return structured response
 """
@@ -71,7 +71,6 @@ class PredictionService:
         user_id: UUID,
         image_bytes: bytes,
         image_url: str,
-        language: str = "en",
     ) -> PredictResponse:
         """
         Execute the full prediction pipeline.
@@ -84,8 +83,6 @@ class PredictionService:
             Raw image content (already validated by ImageService).
         image_url:
             Relative path stored in the DB (returned by ImageService).
-        language:
-            ISO 639-1 code for the LLM response language.
 
         Raises
         ------
@@ -190,50 +187,12 @@ class PredictionService:
             llm_result = await self._llm_svc.generate_precautions(
                 plant_name=plant_name,
                 disease_name=disease_name,
-                language=language,
             )
-
-            # ── 6b. Optional RAG enrichment ──────────────────────────────────
-            rag_answer: Optional[str] = None
-            rag_sources: list[str] = []
-            rag_documents: list[dict] = []
-
-            if settings.RAG_ENABLED:
-                try:
-                    rag_question = self._build_rag_question(
-                        plant_name=plant_name,
-                        disease_name=disease_name,
-                    )
-                    rag = self._get_rag_pipeline()
-                    rag_result = await rag.query(rag_question, language=language)
-
-                    rag_answer = rag_result.answer.strip() if rag_result.answer else None
-                    rag_sources = rag_result.sources[:5]
-                    rag_documents = [
-                        {
-                            "source": doc.source,
-                            "page": doc.page,
-                            "score": round(doc.score, 3) if doc.score is not None else None,
-                            "preview": (
-                                doc.content[:220] + "..."
-                                if len(doc.content) > 220
-                                else doc.content
-                            ),
-                        }
-                        for doc in rag_result.documents[:3]
-                    ]
-                    logger.info(
-                        "RAG enrichment complete | sources=%d docs=%d",
-                        len(rag_sources),
-                        len(rag_documents),
-                    )
-                except Exception as exc:
-                    logger.warning("RAG enrichment failed (%s); continuing without RAG", exc)
 
             # ── 7. Persist AI response ────────────────────────────────────────
             await self._ai_response_repo.create(
                 prediction_id=prediction.id,
-                language=language,
+                language="en",
                 precautions_text=llm_result.precautions_text,
                 audio_url=llm_result.audio_url,
             )
@@ -248,11 +207,7 @@ class PredictionService:
                 confidence_score=round(confidence_score, 4),
                 fallback_used=fallback_used,
                 precautions=llm_result.precautions_text,
-                language=language,
                 audio_url=llm_result.audio_url,
-                rag_answer=rag_answer,
-                rag_sources=rag_sources,
-                rag_documents=rag_documents,
             )
         except AppException:
             raise
@@ -270,24 +225,3 @@ class PredictionService:
                 "Prediction pipeline failed unexpectedly.",
                 detail="internal_pipeline_error",
             ) from exc
-
-    @staticmethod
-    def _get_rag_pipeline():
-        # Local import keeps the base prediction path lightweight when RAG is disabled.
-        from app.rag.pipeline import get_rag_pipeline
-
-        return get_rag_pipeline()
-
-    @staticmethod
-    def _build_rag_question(plant_name: str, disease_name: str) -> str:
-        if disease_name.lower() == "healthy":
-            return (
-                f"{plant_name} crop appears healthy. "
-                "Share evidence-based care and prevention practices for keeping it healthy."
-            )
-
-        return (
-            f"{plant_name} has {disease_name}. "
-            "Provide practical disease overview, major symptoms, immediate treatment steps, "
-            "and prevention guidance for farmers."
-        )

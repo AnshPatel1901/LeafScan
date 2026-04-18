@@ -1,8 +1,7 @@
 """
 LLM Service — generates disease explanation and precautions.
 
-Uses Gemini Flash as the LLM backend. Multilingual output is achieved
-by injecting the target language code into the prompt.
+Uses Gemini Flash as the LLM backend.
 TTS integration with Google Cloud TTS and Servaai for audio generation.
 """
 
@@ -21,30 +20,6 @@ from app.services.tts_service import get_tts_service
 logger = logging.getLogger(__name__)
 
 _TIMEOUT = httpx.Timeout(connect=10.0, read=90.0, write=10.0, pool=5.0)
-
-# ISO 639-1 → full language name for the prompt
-# Extended support for more languages
-_LANGUAGE_NAMES: dict[str, str] = {
-    "en": "English",
-    "hi": "Hindi",
-    "ta": "Tamil",
-    "te": "Telugu",
-    "mr": "Marathi",
-    "bn": "Bengali",
-    "gu": "Gujarati",
-    "kn": "Kannada",
-    "ml": "Malayalam",
-    "pa": "Punjabi",
-    "fr": "French",
-    "es": "Spanish",
-    "de": "German",
-    "zh": "Chinese (Simplified)",
-    "ar": "Arabic",
-    "pt": "Portuguese",
-    "it": "Italian",
-    "ja": "Japanese",
-    "ko": "Korean",
-}
 
 
 # ── Data contract ─────────────────────────────────────────────────────────────
@@ -65,7 +40,6 @@ class LLMService:
     Generates agronomic explanations and precautions for detected diseases.
 
     Features:
-        • Multilingual: ISO 639-1 language codes
         • TTS Integration: Google Cloud TTS & Servaai support
         • Fallback: Static text if LLM unavailable
         • Error Handling: Comprehensive logging and error recovery
@@ -88,10 +62,9 @@ class LLMService:
         self,
         plant_name: str,
         disease_name: str,
-        language: str = "en",
     ) -> LLMResult:
         """
-        Generate disease explanation and precautions in *language*.
+        Generate disease explanation and precautions.
 
         Parameters
         ----------
@@ -99,8 +72,6 @@ class LLMService:
             Name of the plant (e.g., "Tomato", "Potato")
         disease_name : str
             Name of the detected disease
-        language : str
-            ISO 639-1 language code (default: "en")
 
         Returns
         -------
@@ -113,10 +84,11 @@ class LLMService:
         Optionally generates audio if TTS_ENABLED in config.
         """
         try:
-            text = await self._call_llm(plant_name, disease_name, language)
+            text = await self._call_llm(plant_name, disease_name)
+
             logger.info(
-                "LLM generation success | plant=%s disease=%s lang=%s | text_len=%d",
-                plant_name, disease_name, language, len(text)
+                "LLM generation success | plant=%s disease=%s | text_len=%d",
+                plant_name, disease_name, len(text)
             )
         except Exception as exc:
             logger.warning(
@@ -128,68 +100,49 @@ class LLMService:
         audio_url = None
         if settings.TTS_ENABLED:
             try:
-                tts_result = await self._tts_service.synthesize(text, language)
+                tts_result = await self._tts_service.synthesize(text, "en")
                 if tts_result:
                     audio_url = tts_result.audio_url
-                    logger.info("TTS generated successfully | lang=%s | url=%s", language, audio_url)
+                    logger.info("TTS generated successfully | url=%s", audio_url)
             except Exception as exc:
                 logger.warning("TTS generation failed (%s); continuing without audio", exc)
 
         return LLMResult(precautions_text=text, audio_url=audio_url)
 
-    # ── Public utilities ───────────────────────────────────────────────────────
-
-    @staticmethod
-    def get_supported_languages() -> list[str]:
-        """Return list of supported language codes."""
-        return list(_LANGUAGE_NAMES.keys())
-
-    @staticmethod
-    def is_language_supported(language: str) -> bool:
-        """Check if language is supported."""
-        return language in _LANGUAGE_NAMES
-
     # ── Private helpers ────────────────────────────────────────────────────────
 
-    def _build_prompt(
-        self, plant_name: str, disease_name: str, language: str
-    ) -> str:
-        """Build LLM prompt with language-specific instructions."""
-        lang_name = _LANGUAGE_NAMES.get(language, "English")
-        
+    def _build_prompt(self, plant_name: str, disease_name: str) -> str:
+        """Build LLM prompt for disease precautions."""
         if disease_name.lower() == "healthy":
             return (
-                f"The {plant_name} plant appears healthy. "
-                f"In {lang_name}, provide 3-4 sentences of general tips "
-                f"to keep this plant healthy and disease-free. "
-                f"Focus on practical, actionable advice for farmers."
+                f"The {plant_name} plant appears healthy.\n"
+                f"Provide 3-4 sentences of general tips to keep this plant healthy and disease-free.\n"
+                f"Focus on practical, actionable advice for farmers.\n"
+                f"Use simple, clear language."
             )
         
         return (
-            f"A {plant_name} plant has been diagnosed with '{disease_name}'. "
-            f"Respond ONLY in {lang_name}. "
-            f"Do not use any other language.\n\n"
-            f"Structure your response exactly as follows:\n\n"
-            f"**About the disease:** (2-3 sentences explaining what it is and impact)\n\n"
+            f"PLANT: {plant_name}\n"
+            f"DISEASE: {disease_name}\n\n"
+            f"Provide disease management advice with this structure:\n\n"
+            f"**About the disease:** (2-3 sentences explaining what it is and its impact)\n\n"
             f"**Symptoms to watch:** (bullet list of 3-4 visual symptoms)\n\n"
             f"**Immediate actions:** (bullet list of 3-4 urgent steps to take)\n\n"
             f"**Prevention:** (bullet list of 3-4 preventive measures)\n\n"
-            f"Keep the response practical, concise, and suitable for farmers. "
-            f"Use simple language."
+            f"Keep the response practical, concise, and suitable for farmers."
         )
 
-    async def _call_llm(
-        self, plant_name: str, disease_name: str, language: str
-    ) -> str:
+    async def _call_llm(self, plant_name: str, disease_name: str) -> str:
         """Call Gemini API to generate precautions."""
         if not self._api_key:
             raise ExternalServiceError("GEMINI_API_KEY not configured")
 
-        prompt = self._build_prompt(plant_name, disease_name, language)
+        prompt = self._build_prompt(plant_name, disease_name)
+        
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
-                "temperature": 0.4,
+                "temperature": 0.3,
                 "topP": 0.95,
                 "maxOutputTokens": 1024,
             },
@@ -205,7 +158,9 @@ class LLMService:
                 resp.raise_for_status()
                 data = resp.json()
 
-            return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            response_text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            logger.info("LLM response generated | length=%d", len(response_text))
+            return response_text
         except httpx.HTTPError as exc:
             raise ExternalServiceError(f"Gemini API error: {exc}") from exc
         except (KeyError, IndexError) as exc:
@@ -215,7 +170,21 @@ class LLMService:
 
     @staticmethod
     def _static_fallback(plant_name: str, disease_name: str) -> str:
-        """Return a practical offline advisory when the LLM is unavailable."""
+        """
+        Return a practical offline advisory when the LLM is unavailable.
+        
+        Parameters
+        ----------
+        plant_name : str
+            Name of the plant
+        disease_name : str
+            Name of the disease
+
+        Returns
+        -------
+        str
+            Fallback advice text
+        """
         disease = disease_name.strip()
         disease_lower = disease.lower()
 
@@ -228,13 +197,14 @@ class LLMService:
                 "- Scout the plant 2-3 times per week to catch early symptoms.\n"
                 "- Use clean tools and remove heavily damaged leaves promptly."
             )
+        else:
+            return (
+                f"Disease detected: **{disease}** on {plant_name}.\n\n"
+                "**Immediate actions:**\n"
+                "- Isolate affected plants/leaves to prevent spread to others.\n"
+                "- Remove visibly infected tissue and dispose safely away from fields.\n"
+                "- Avoid overhead irrigation; keep foliage as dry as possible.\n"
+                "- Consult a local agronomist for crop-approved treatment options."
+            )
 
-        return (
-            f"Disease detected: **{disease}** on {plant_name}.\n\n"
-            "**Immediate actions:**\n"
-            "- Isolate affected plants/leaves to prevent spread to others.\n"
-            "- Remove visibly infected tissue and dispose safely away from fields.\n"
-            "- Avoid overhead irrigation; keep foliage as dry as possible.\n"
-            "- Consult a local agronomist for crop-approved treatment options."
-        )
 

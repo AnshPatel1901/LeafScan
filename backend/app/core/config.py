@@ -60,7 +60,6 @@ class Settings(BaseSettings):
 
     # ── LLM ───────────────────────────────────────────────────────────────────
     LLM_PROVIDER: str = "gemini"
-    DEFAULT_LANGUAGE: str = "en"
 
     # ── CORS ──────────────────────────────────────────────────────────────────
     # Comma-separated list of allowed origins, e.g.:
@@ -83,28 +82,6 @@ class Settings(BaseSettings):
     # TTS Storage
     TTS_STORAGE_DIR: str = "uploads/tts"
     
-    # ── Multi-Language Support ────────────────────────────────────────────────
-    SUPPORTED_LANGUAGES: str = "en,hi,ta,te,mr,bn,gu,kn,ml,pa,fr,es,de,zh,ar,pt,it,ja,ko"
-    
-    # ── RAG (Retrieval-Augmented Generation) ──────────────────────────────────
-    RAG_ENABLED: bool = False
-    RAG_UPLOAD_DIR: str = "uploads/rag/documents"
-    RAG_VECTOR_DB_DIR: str = "uploads/rag/vectordb"
-    
-    # Groq LLM for RAG
-    GROQ_API_KEY: str = ""
-    GROQ_MODEL: str = "llama-3.1-8b-versatile"
-    
-    # Embeddings
-    EMBEDDING_MODEL: str = "paraphrase-multilingual-mpnet-base-v2"
-    EMBEDDING_DIMENSION: int = 768
-    
-    # RAG Retrieval
-    RAG_CHUNK_SIZE: int = 1000
-    RAG_CHUNK_OVERLAP: int = 150
-    RAG_TOP_K_DOCS: int = 6
-    RAG_FETCH_K: int = 12  # For MMR retrieval
-    
     # ── Derived / computed ────────────────────────────────────────────────────
     @property
     def max_file_size_bytes(self) -> int:
@@ -117,10 +94,6 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> List[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
-
-    @property
-    def supported_languages_list(self) -> List[str]:
-        return [lang.strip() for lang in self.SUPPORTED_LANGUAGES.split(",") if lang.strip()]
 
     @field_validator("JWT_SECRET_KEY")
     @classmethod
@@ -144,13 +117,6 @@ class Settings(BaseSettings):
         valid_providers = ["google", "servaai"]
         if v not in valid_providers:
             raise ValueError(f"TTS_PROVIDER must be one of {valid_providers}")
-        return v
-
-    @field_validator("RAG_CHUNK_SIZE")
-    @classmethod
-    def validate_chunk_size(cls, v: int) -> int:
-        if v < 100:
-            raise ValueError("RAG_CHUNK_SIZE must be at least 100")
         return v
 
     @model_validator(mode="after")

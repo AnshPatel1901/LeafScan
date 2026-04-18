@@ -6,9 +6,8 @@ with LLM-generated precautions.
 """
 
 import logging
-import re
 
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -29,7 +28,6 @@ from app.services.prediction_service import PredictionService
 router = APIRouter(tags=["Prediction"])
 
 _image_service = ImageService()
-_LANGUAGE_RE = re.compile(r"^[a-z]{2}(?:-[a-z]{2})?$")
 logger = logging.getLogger(__name__)
 
 
@@ -42,7 +40,7 @@ logger = logging.getLogger(__name__)
         "Upload a JPG/PNG image of a plant. "
         "The system will validate that it contains a plant, "
         "detect any disease using the CNN model (with Gemini Flash fallback), "
-        "and return precautions in the requested language."
+        "and return disease precautions."
     ),
 )
 async def predict(
@@ -51,33 +49,22 @@ async def predict(
         ...,
         description="Plant image file (JPG or PNG, max 10 MB)",
     ),
-    language: str = Form(
-        default="en",
-        description="ISO 639-1 language code for the response (e.g. 'en', 'hi', 'ta')",
-    ),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> APIResponse[PredictResponse]:
     request_id = getattr(request.state, "request_id", "unknown")
     safe_filename = (file.filename or "").strip()
-    language = language.strip().lower()
 
     logger.info(
-        "[%s] /predict start | user_id=%s | file=%s | content_type=%s | language=%s",
+        "[%s] /predict start | user_id=%s | file=%s | content_type=%s",
         request_id,
         current_user.id,
         safe_filename or "<missing>",
         file.content_type,
-        language,
     )
 
     if not safe_filename:
         raise InvalidRequestError("Missing file name in uploaded image")
-
-    if not _LANGUAGE_RE.match(language):
-        raise InvalidRequestError(
-            "Invalid language code. Use ISO 639-1 format such as 'en' or 'hi'."
-        )
 
     try:
         # ── 1. Validate & save image ──────────────────────────────────────────
@@ -100,7 +87,6 @@ async def predict(
             user_id=current_user.id,
             image_bytes=image_bytes,
             image_url=image_url,
-            language=language,
         )
 
         logger.info(
