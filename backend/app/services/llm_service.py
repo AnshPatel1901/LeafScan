@@ -120,7 +120,12 @@ class LLMService:
                 "Groq LLM generation success | plant=%s disease=%s | language=%s | text_len=%d",
                 plant_name, disease_name, language, len(text)
             )
-            return LLMResult(precautions_text=text, audio_url=None)
+            
+            # Extract treatment advice for TTS
+            treatment_advice = self._extract_treatment_advice(text, disease_name)
+            audio_url = await self._generate_tts_audio(treatment_advice, language)
+            
+            return LLMResult(precautions_text=text, audio_url=audio_url)
 
         except ExternalServiceError as exc:
             logger.warning("Groq LLM failed (%s); trying Gemini fallback", exc)
@@ -136,7 +141,12 @@ class LLMService:
                 "Gemini LLM fallback success | plant=%s disease=%s | language=%s | text_len=%d",
                 plant_name, disease_name, language, len(text)
             )
-            return LLMResult(precautions_text=text, audio_url=None)
+            
+            # Extract treatment advice for TTS
+            treatment_advice = self._extract_treatment_advice(text, disease_name)
+            audio_url = await self._generate_tts_audio(treatment_advice, language)
+            
+            return LLMResult(precautions_text=text, audio_url=audio_url)
 
         except ExternalServiceError as exc:
             logger.warning("Gemini LLM also failed (%s); using static fallback", exc)
@@ -147,7 +157,12 @@ class LLMService:
             "Using static fallback | plant=%s disease=%s | language=%s",
             plant_name, disease_name, language
         )
-        return LLMResult(precautions_text=text, audio_url=None)
+        
+        # Extract treatment advice for TTS (even from static fallback)
+        treatment_advice = self._extract_treatment_advice(text, disease_name)
+        audio_url = await self._generate_tts_audio(treatment_advice, language)
+        
+        return LLMResult(precautions_text=text, audio_url=audio_url)
 
     # ── Private helpers ────────────────────────────────────────────────────────
 
@@ -703,3 +718,143 @@ class LLMService:
                     "9. Keep detailed records of disease and treatments\n"
                     "10. Reduce field activities during wet weather"
                 )
+
+    # ── Private: Treatment Advice Extraction ───────────────────────────────────
+
+    def _extract_treatment_advice(self, full_text: str, disease_name: str) -> str:
+        """
+        Extract Immediate Treatment Actions section from LLM response (2+ minutes).
+        
+        For healthy plants: Returns care tips section.
+        For diseased plants: Returns Immediate Treatment Actions + Treatment Methods (to reach 2 min minimum).
+        
+        Parameters
+        ----------
+        full_text : str
+            Full LLM-generated or fallback response
+        disease_name : str
+            Disease name to check if plant is healthy
+
+        Returns
+        -------
+        str
+            Extracted immediate treatment actions suitable for TTS (2+ minutes audio)
+        """
+        if not full_text or not full_text.strip():
+            return ""
+
+        disease_lower = disease_name.lower().strip()
+        
+        # For healthy plants, extract care tips section
+        if disease_lower == "healthy":
+            if "**Daily Care Tips:**" in full_text:
+                start = full_text.find("**Daily Care Tips:**")
+                end = len(full_text)
+                next_section = full_text.find("**", start + 20)
+                if next_section > 0:
+                    end = next_section
+                return full_text[start:end].strip()
+            else:
+                lines = full_text.split("\n")
+                return "\n".join(lines[:10][:500]) if lines else full_text[:500]
+
+        # For diseased plants, extract Immediate Treatment Actions + Treatment Methods
+        # Priority: Find Immediate Treatment Actions section
+        immediate_action_markers = [
+            "**🚨 Immediate Treatment Actions:**",
+            "**Immediate Treatment Actions:**",
+            "**Immediate Actions:**",
+        ]
+        
+        start_pos = -1
+        for marker in immediate_action_markers:
+            pos = full_text.find(marker)
+            if pos >= 0:
+                start_pos = pos
+                break
+        
+        # If no explicit immediate actions, start from disease identification
+        if start_pos == -1:
+            disease_id_marker = "**🔍 Disease Identification:**"
+            disease_id_pos = full_text.find(disease_id_marker)
+            if disease_id_pos >= 0:
+                start_pos = disease_id_pos
+            else:
+                # Fallback to beginning
+                start_pos = 0
+        
+        # Now find the end position - we want to include Immediate Actions + Treatment Methods + Timeline
+        # Stop only at Prevention section
+        prevention_marker = "**🛡️ Prevention & Control:**"
+        prevention_pos = full_text.find(prevention_marker, start_pos + 50)
+        
+        if prevention_pos > start_pos:
+            end_pos = prevention_pos
+        else:
+            # If no prevention section, include most of the content
+            end_pos = len(full_text)
+        
+        extracted = full_text[start_pos:end_pos].strip()
+        
+        # Ensure minimum 2 minutes of audio
+        # At pace 0.8: ~680 characters per minute, so 2 minutes = ~1360 chars
+        min_length_for_2min = 1360
+        
+        if len(extracted) < min_length_for_2min:
+            # Extend to end of full text or cap at 2500
+            extended_end = min(len(full_text), start_pos + 2500)
+            extracted = full_text[start_pos:extended_end].strip()
+        
+        # Hard cap at 2500 for API safety
+        if len(extracted) > 2500:
+            extracted = extracted[:2500] + "..."
+            logger.debug("Immediate treatment advice truncated to fit API limit")
+
+        logger.debug(
+            "Extracted immediate treatment actions: %d characters (target: 2+ min = 1360+ chars at pace 0.8)",
+            len(extracted),
+        )
+        return extracted
+
+    # ── Private: TTS Audio Generation ───────────────────────────────────────────
+
+    async def _generate_tts_audio(self, treatment_advice: str, language: str) -> Optional[str]:
+        """
+        Generate TTS audio from treatment advice if TTS is enabled.
+        
+        Parameters
+        ----------
+        treatment_advice : str
+            Text to convert to speech
+        language : str
+            Language code (e.g., 'en', 'hi')
+
+        Returns
+        -------
+        Optional[str]
+            Audio URL if TTS succeeds, None if disabled or fails
+        """
+        if not treatment_advice or not treatment_advice.strip():
+            logger.debug("No treatment advice to convert to TTS")
+            return None
+
+        try:
+            tts_service = self._tts_service
+            if not tts_service:
+                logger.debug("TTS service not available")
+                return None
+
+            result = await tts_service.synthesize(treatment_advice, language)
+            if result and result.audio_url:
+                logger.info("TTS audio generated successfully: %s", result.audio_url)
+                return result.audio_url
+            else:
+                logger.debug("TTS synthesis returned no audio URL")
+                return None
+
+        except ExternalServiceError as exc:
+            logger.warning("TTS synthesis failed (will still return text): %s", exc)
+            return None
+        except Exception as exc:
+            logger.exception("Unexpected error during TTS synthesis: %s", exc)
+            return None

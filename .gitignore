@@ -73,3 +73,5 @@ latest.weights.h5
 .env.local.example
 package-lock.json
 package.json
+
+verify_audio_setup.sh

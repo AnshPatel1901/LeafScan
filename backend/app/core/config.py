@@ -4,9 +4,10 @@ All settings are validated at startup; missing required values raise immediately
 """
 
 from functools import lru_cache
+from pathlib import Path
 from typing import List
 
-from pydantic import field_validator, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -74,24 +75,24 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:3000"
 
     # ── TTS (Text-to-Speech) ──────────────────────────────────────────────────
-    TTS_ENABLED: bool = False
-    TTS_PROVIDER: str = "google"  # Options: "google", "servaai"
+    TTS_ENABLED: bool = Field(default=True, description="Enable Sarvam AI Bulbul v2 TTS")
     
-    # Google Cloud TTS
-    GOOGLE_TTS_API_KEY: str = ""
-    GOOGLE_TTS_LANGUAGE_CODE: str = "en-US"
+    # Sarvam AI Bulbul v2 Text-to-Speech (Free tier available)
+    # Get API key from: https://console.sarvam.ai/
+    SARVAM_AI_API_KEY: str = Field(default="", description="Sarvam AI API key for TTS")
     
-    # Servaai TTS
-    SERVAAI_API_KEY: str = ""
-    SERVAAI_VOICE_ID: str = "en-US-Neural2-A"
-    
-    # TTS Storage
+    # TTS Storage directory
     TTS_STORAGE_DIR: str = "uploads/tts"
     
     # ── Derived / computed ────────────────────────────────────────────────────
     @property
     def max_file_size_bytes(self) -> int:
         return self.MAX_FILE_SIZE_MB * 1024 * 1024
+
+    @property
+    def tts_storage_dir_absolute(self) -> str:
+        """Get absolute path for TTS storage directory."""
+        return str(Path(self.TTS_STORAGE_DIR).resolve())
 
     @property
     def allowed_image_types_list(self) -> List[str]:
@@ -115,14 +116,6 @@ class Settings(BaseSettings):
     def validate_threshold(cls, v: float) -> float:
         if not (0.0 <= v <= 1.0):
             raise ValueError("CONFIDENCE_THRESHOLD must be between 0 and 1")
-        return v
-
-    @field_validator("TTS_PROVIDER")
-    @classmethod
-    def validate_tts_provider(cls, v: str) -> str:
-        valid_providers = ["google", "servaai"]
-        if v not in valid_providers:
-            raise ValueError(f"TTS_PROVIDER must be one of {valid_providers}")
         return v
 
     @model_validator(mode="after")

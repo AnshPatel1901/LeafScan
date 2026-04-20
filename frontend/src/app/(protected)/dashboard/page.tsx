@@ -20,6 +20,7 @@ import toast from "react-hot-toast";
 import Image from "next/image";
 import { getApiErrorMessage, predict } from "@/lib/api";
 import type { PredictResponse } from "@/types";
+import AudioPlayer from "@/components/ui/AudioPlayer";
 
 type Stage = "idle" | "uploading" | "analyzing" | "done" | "error";
 
@@ -244,7 +245,8 @@ function ResultCard({ result }: { result: PredictResponse }) {
   const langCode = normalizeLanguageCode(result.language);
   const langDisplay =
     LANGUAGES.find((l) => l.code === langCode)?.native ?? result.language;
-  const hasRag = Boolean(result.rag_answer) || Boolean(result.rag_sources?.length);
+  const hasRag =
+    Boolean(result.rag_answer) || Boolean(result.rag_sources?.length);
 
   return (
     <div className="space-y-4 animate-fade-up">
@@ -300,22 +302,34 @@ function ResultCard({ result }: { result: PredictResponse }) {
 
           {/* Precautions */}
           {result.precautions && (
-            <div className="card p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-lg bg-[var(--green-light)] flex items-center justify-center">
-                  <Leaf className="w-3.5 h-3.5 text-[var(--green)]" />
+            <div className="card p-5 space-y-4">
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 rounded-lg bg-[var(--green-light)] flex items-center justify-center">
+                    <Leaf className="w-3.5 h-3.5 text-[var(--green)]" />
+                  </div>
+                  <h3 className="font-semibold text-[var(--text)] text-sm">
+                    Treatment advice
+                  </h3>
+                  <span className="ml-auto badge bg-[var(--bg-subtle)] text-[var(--text-muted)] text-xs">
+                    <Globe className="w-3 h-3" />
+                    {langDisplay}
+                  </span>
                 </div>
-                <h3 className="font-semibold text-[var(--text)] text-sm">
-                  Treatment advice
-                </h3>
-                <span className="ml-auto badge bg-[var(--bg-subtle)] text-[var(--text-muted)] text-xs">
-                  <Globe className="w-3 h-3" />
-                  {langDisplay}
-                </span>
+                <div className="text-sm text-[var(--text)] leading-relaxed whitespace-pre-line">
+                  {result.precautions}
+                </div>
               </div>
-              <div className="text-sm text-[var(--text)] leading-relaxed whitespace-pre-line">
-                {result.precautions}
-              </div>
+              {/* Audio Player - Show if audio_url is available */}
+              {result.audio_url && (
+                <div className="border-t border-[var(--border)] pt-4">
+                  <AudioPlayer
+                    audioUrl={result.audio_url}
+                    language={result.language}
+                    title="Listen to treatment advice"
+                  />
+                </div>
+              )}
             </div>
           )}
 

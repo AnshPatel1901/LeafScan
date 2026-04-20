@@ -42,6 +42,25 @@ async def lifespan(app: FastAPI):
     Path(settings.UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
     logger.info("Upload directory ready: %s", settings.UPLOAD_DIR)
 
+    # ── TTS Configuration Status ──────────────────────────────────────────────
+    if settings.TTS_ENABLED:
+        if settings.SARVAM_AI_API_KEY:
+            logger.info(
+                "✅ TTS is ENABLED | Sarvam AI Bulbul v2 API key is configured | "
+                "Treatment advice will be converted to speech in supported languages: "
+                "English, Hindi, Tamil, Telugu, Kannada, Malayalam"
+            )
+        else:
+            logger.warning(
+                "⚠️  TTS is ENABLED but SARVAM_AI_API_KEY is missing! "
+                "Audio generation will fail. "
+                "Set SARVAM_AI_API_KEY in .env to enable TTS."
+            )
+    else:
+        logger.info(
+            "ℹ️  TTS is DISABLED | Set TTS_ENABLED=true and SARVAM_AI_API_KEY in .env to enable audio"
+        )
+
     logger.info("Application startup complete — ready to serve requests")
     yield
 
