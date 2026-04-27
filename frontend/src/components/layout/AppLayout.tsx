@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import {
   Leaf, LayoutDashboard, History, LogOut,
-  Menu, X, User
+  Menu, X, User, MessageSquare,
 } from 'lucide-react'
 import { useState } from 'react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext'
 const NAV = [
   { href: '/dashboard', label: 'Diagnose',  icon: LayoutDashboard },
   { href: '/history',   label: 'History',   icon: History },
+  { href: '/chatbot',   label: 'Chatbot',   icon: MessageSquare },
 ]
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

@@ -76,14 +76,35 @@ class Settings(BaseSettings):
 
     # ── TTS (Text-to-Speech) ──────────────────────────────────────────────────
     TTS_ENABLED: bool = Field(default=True, description="Enable Sarvam AI Bulbul v2 TTS")
-    
+
     # Sarvam AI Bulbul v2 Text-to-Speech (Free tier available)
     # Get API key from: https://console.sarvam.ai/
     SARVAM_AI_API_KEY: str = Field(default="", description="Sarvam AI API key for TTS")
-    
+
     # TTS Storage directory
     TTS_STORAGE_DIR: str = "uploads/tts"
-    
+
+    # ── RAG (Retrieval-Augmented Generation) ─────────────────────────────────
+    RAG_ENABLED: bool = Field(default=True, description="Enable RAG chatbot")
+    RAG_UPLOAD_DIR: str = "uploads/rag/documents"
+    RAG_VECTOR_DB_DIR: str = "uploads/rag/vectordb"
+    RAG_CHUNK_SIZE: int = 1000
+    RAG_CHUNK_OVERLAP: int = 200
+    RAG_TOP_K_DOCS: int = 6
+    RAG_FETCH_K: int = 12
+
+    # Gemini embedding model for RAG
+    GEMINI_EMBEDDING_MODEL: str = "models/gemini-embedding-001"
+
+    # Groq model for RAG chatbot (lighter than disease precautions model)
+    GROQ_RAG_API_KEY: str = Field(default="", description="Groq key for RAG; falls back to GROQ_API_KEY")
+    GROQ_RAG_MODEL: str = "llama-3.1-8b-versatile"
+
+    @property
+    def effective_groq_rag_key(self) -> str:
+        """Return the RAG-specific key or fall back to the main Groq key."""
+        return self.GROQ_RAG_API_KEY or self.GROQ_API_KEY
+
     # ── Derived / computed ────────────────────────────────────────────────────
     @property
     def max_file_size_bytes(self) -> int:

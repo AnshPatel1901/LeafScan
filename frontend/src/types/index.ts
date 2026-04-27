@@ -78,6 +78,62 @@ export interface APIResponse<T> {
   message: string
 }
 
+// ── Chatbot ───────────────────────────────────────────────────────────────────
+
+export interface SourceCitation {
+  source: string
+  page: number | null
+  preview: string | null
+}
+
+export interface ChatMessage {
+  id: string
+  session_id: string
+  role: 'user' | 'assistant'
+  content: string
+  sources: SourceCitation[] | null
+  created_at: string
+}
+
+export interface ChatSession {
+  id: string
+  title: string
+  created_at: string
+  updated_at: string
+  message_count: number
+}
+
+export interface ChatSessionDetail {
+  id: string
+  title: string
+  created_at: string
+  updated_at: string
+  messages: ChatMessage[]
+}
+
+export interface SendMessageResponse {
+  user_message: ChatMessage
+  assistant_message: ChatMessage
+  sources: SourceCitation[]
+}
+
+export interface ChatDocument {
+  id: string
+  name: string
+  pages: number
+  chunks: number
+}
+
+export interface ChatbotHealth {
+  initialized: boolean
+  documents_indexed: number
+  vector_db_dir: string
+  upload_dir: string
+  embedding_model: string
+  groq_model: string
+  is_ready: boolean
+}
+
 // ── Language ──────────────────────────────────────────────────────────────────
 
 export interface Language {

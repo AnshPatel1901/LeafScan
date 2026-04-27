@@ -1,5 +1,8 @@
 import axios, { AxiosError } from 'axios'
-import type { UserProfile, TokenPair, PredictResponse, HistoryItem, HistoryResponse } from '@/types'
+import type {
+  UserProfile, TokenPair, PredictResponse, HistoryItem, HistoryResponse,
+  ChatSession, ChatSessionDetail, SendMessageResponse, ChatDocument, ChatbotHealth,
+} from '@/types'
 import Cookies from 'js-cookie'
 import { logger } from './logger'
 
@@ -33,10 +36,18 @@ api.interceptors.response.use(
     return res
   },
   async (err: AxiosError) => {
+    // Extract backend error message if available
+    const backendMessage = (err.response?.data as any)?.message || 
+                          (err.response?.data as any)?.detail ||
+                          err.message ||
+                          'Unknown error'
+    
     logger.error('API.Error', `${err.config?.method?.toUpperCase()} ${err.config?.url}`, {
       status: err.response?.status,
-      message: err.message,
+      statusText: err.response?.statusText,
+      message: backendMessage,
       code: err.code,
+      responseData: err.response?.data,
     })
 
     const original = err.config as typeof err.config & { _retry?: boolean }
@@ -95,29 +106,47 @@ export function getAccessToken() {
 }
 
 export function getApiErrorMessage(err: unknown, fallback: string): string {
-  if (!axios.isAxiosError(err)) return fallback
+  if (!axios.isAxiosError(err)) {
+    return fallback
+  }
 
-  const detail = err.response?.data?.detail ?? err.response?.data?.data
-  if (Array.isArray(detail) && detail.length > 0) {
-    const messages = detail
-      .map((d: any) => d?.msg ?? d?.message)
+  // Extract the response data safely
+  const responseData = err.response?.data as any
+  
+  // Try to get message in order of priority
+  let message = 
+    responseData?.message ||
+    responseData?.detail ||
+    responseData?.data?.message ||
+    responseData?.data?.detail ||
+    err.response?.statusText
+
+  // Handle array of validation errors
+  if (Array.isArray(responseData?.detail) && responseData.detail.length > 0) {
+    const messages = responseData.detail
+      .map((d: any) => d?.msg ?? d?.message ?? d)
       .filter(Boolean)
     if (messages.length) return messages.join(', ')
   }
 
-  if (typeof detail === 'string' && detail.trim()) {
-    return detail
+  // Handle validation errors in data field
+  if (Array.isArray(responseData?.data) && responseData.data.length > 0) {
+    const messages = responseData.data
+      .map((d: any) => d?.msg ?? d?.message ?? d)
+      .filter(Boolean)
+    if (messages.length) return messages.join(', ')
   }
 
-  const serverMessage = err.response?.data?.message
-  if (typeof serverMessage === 'string' && serverMessage.trim()) {
-    return serverMessage
-  }
-
+  // Network error handling
   if (err.code === 'ERR_NETWORK' || /network changed/i.test(err.message ?? '')) {
     const offline = typeof navigator !== 'undefined' && navigator.onLine === false
     if (offline) return 'You appear to be offline. Please check your internet and try again.'
     return 'Network changed while sending request. Please try again.'
+  }
+
+  // Return what we found, or the fallback
+  if (typeof message === 'string' && message.trim()) {
+    return message
   }
 
   return fallback
@@ -197,4 +226,60 @@ export async function getPrediction(id: string) {
     logger.error('History', `Failed to fetch prediction`, err)
     throw err
   }
+}
+
+// ── Chatbot ───────────────────────────────────────────────────────────────────
+
+export async function getChatSessions(): Promise<ChatSession[]> {
+  const { data } = await api.get('/chatbot/sessions')
+  return data.data as ChatSession[]
+}
+
+export async function createChatSession(title = 'New Chat'): Promise<ChatSession> {
+  const { data } = await api.post('/chatbot/sessions', { title })
+  return data.data as ChatSession
+}
+
+export async function getChatSession(sessionId: string): Promise<ChatSessionDetail> {
+  const { data } = await api.get(`/chatbot/sessions/${sessionId}`)
+  return data.data as ChatSessionDetail
+}
+
+export async function deleteChatSession(sessionId: string): Promise<void> {
+  await api.delete(`/chatbot/sessions/${sessionId}`)
+}
+
+export async function updateChatSessionTitle(sessionId: string, title: string): Promise<void> {
+  await api.patch(`/chatbot/sessions/${sessionId}/title`, { title })
+}
+
+export async function sendChatMessage(
+  sessionId: string,
+  message: string,
+): Promise<SendMessageResponse> {
+  const { data } = await api.post(`/chatbot/sessions/${sessionId}/messages`, { message })
+  return data.data as SendMessageResponse
+}
+
+export async function getChatDocuments(): Promise<ChatDocument[]> {
+  const { data } = await api.get('/chatbot/documents')
+  return data.data as ChatDocument[]
+}
+
+export async function uploadChatDocument(file: File): Promise<{ document: ChatDocument; already_indexed: boolean }> {
+  const form = new FormData()
+  form.append('file', file)
+  const { data } = await api.post('/chatbot/documents', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data.data
+}
+
+export async function deleteChatDocument(docId: string): Promise<void> {
+  await api.delete(`/chatbot/documents/${docId}`)
+}
+
+export async function getChatbotHealth(): Promise<ChatbotHealth> {
+  const { data } = await api.get('/chatbot/health')
+  return data.data as ChatbotHealth
 }

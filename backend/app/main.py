@@ -38,9 +38,12 @@ async def lifespan(app: FastAPI):
     # ── Startup ───────────────────────────────────────────────────────────────
     logger.info("Starting %s v%s [%s]", settings.APP_NAME, settings.APP_VERSION, settings.ENVIRONMENT)
 
-    # Ensure upload directory exists
+    # Ensure upload directories exist
     Path(settings.UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
+    Path(settings.RAG_UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
+    Path(settings.RAG_VECTOR_DB_DIR).mkdir(parents=True, exist_ok=True)
     logger.info("Upload directory ready: %s", settings.UPLOAD_DIR)
+    logger.info("RAG directories ready: docs=%s | vectordb=%s", settings.RAG_UPLOAD_DIR, settings.RAG_VECTOR_DB_DIR)
 
     # ── TTS Configuration Status ──────────────────────────────────────────────
     if settings.TTS_ENABLED:
