@@ -69,13 +69,35 @@ _MAX_PDF_SIZE_BYTES = _MAX_PDF_SIZE_MB * 1024 * 1024
     summary="RAG chatbot health",
 )
 async def chatbot_health():
+    """Get chatbot service health and test RAG retrieval."""
     rag = get_rag_service()
     info = rag.health()
+    
+    # Test retrieval with a simple query
+    test_query = "plant disease"
+    test_docs = []
+    test_success = False
+    try:
+        test_docs = rag.search(test_query, k=1, fetch_k=2)
+        test_success = len(test_docs) > 0
+        logger.debug(f"RAG health check: test query '{test_query}' returned {len(test_docs)} results")
+    except Exception as e:
+        logger.warning(f"RAG health check: search test failed: {e}")
+    
     payload = ChatbotHealthResponse(
         **info,
         is_ready=rag.is_ready(),
     )
-    return APIResponse.ok(payload, "Chatbot service health")
+    
+    # Add test result to response if available
+    result_msg = "Chatbot service health"
+    if rag.is_ready():
+        if test_success:
+            result_msg = "Chatbot ready - RAG search functional"
+        else:
+            result_msg = "Chatbot ready but RAG search may have issues"
+    
+    return APIResponse.ok(payload, result_msg)
 
 
 # ── Sessions ───────────────────────────────────────────────────────────────────

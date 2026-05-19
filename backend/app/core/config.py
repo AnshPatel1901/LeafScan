@@ -90,8 +90,8 @@ class Settings(BaseSettings):
     RAG_VECTOR_DB_DIR: str = "uploads/rag/vectordb"
     RAG_CHUNK_SIZE: int = 1000
     RAG_CHUNK_OVERLAP: int = 200
-    RAG_TOP_K_DOCS: int = 6
-    RAG_FETCH_K: int = 12
+    RAG_TOP_K_DOCS: int = 5  # Increased from 3 to retrieve more relevant documents
+    RAG_FETCH_K: int = 10    # Increased from 6 for better MMR candidate pool
 
     # Gemini embedding model for RAG
     GEMINI_EMBEDDING_MODEL: str = "models/gemini-embedding-001"

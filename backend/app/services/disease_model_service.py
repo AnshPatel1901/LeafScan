@@ -20,8 +20,13 @@ from __future__ import annotations
 import io
 import json
 import logging
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
+
+# ── CRITICAL: Disable GPU BEFORE any TensorFlow import ──────────────────────
+os.environ.setdefault('CUDA_VISIBLE_DEVICES', '-1')
+os.environ.setdefault('TF_ENABLE_ONEDNN_OPTS', '0')
 
 import numpy as np
 from PIL import Image
@@ -151,6 +156,7 @@ class DiseaseModelService:
 
         try:
             import tensorflow as tf
+            # TensorFlow is configured for inference (GPU disabled at app startup)
         except Exception as exc:
             logger.warning(
                 "DiseaseModelService: TensorFlow not available (%s); will use Gemini fallback",
@@ -159,6 +165,7 @@ class DiseaseModelService:
             return None
 
         try:
+            logger.info("DiseaseModelService: loading Keras model from %s", model_path)
             model = tf.keras.models.load_model(model_path)
         except AttributeError:
             # Some environments expose TensorFlow ops but not tf.keras.

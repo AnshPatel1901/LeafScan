@@ -11,8 +11,14 @@ Creates and configures the FastAPI application:
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
+
+# ── CRITICAL: Disable GPU BEFORE any TensorFlow imports ──────────────────────
+# This MUST be done before importing any ML services that use TensorFlow
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -44,6 +50,20 @@ async def lifespan(app: FastAPI):
     Path(settings.RAG_VECTOR_DB_DIR).mkdir(parents=True, exist_ok=True)
     logger.info("Upload directory ready: %s", settings.UPLOAD_DIR)
     logger.info("RAG directories ready: docs=%s | vectordb=%s", settings.RAG_UPLOAD_DIR, settings.RAG_VECTOR_DB_DIR)
+
+    # ── Preload RAG embedding model at startup (avoid first-request blocking) ──
+    if settings.RAG_ENABLED:
+        try:
+            logger.info("Preloading RAG embedding model (this may take 30-60 seconds on first run)...")
+            from app.services.rag_service import get_rag_service
+            rag = get_rag_service()
+            rag._ensure_initialized()
+            logger.info(
+                "✅ RAG embedding model preloaded | %d documents indexed",
+                len(rag._documents_index),
+            )
+        except Exception as exc:
+            logger.warning("⚠️ RAG preload failed (non-critical): %s", exc)
 
     # ── TTS Configuration Status ──────────────────────────────────────────────
     if settings.TTS_ENABLED:

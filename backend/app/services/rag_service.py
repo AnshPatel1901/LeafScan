@@ -19,10 +19,12 @@ existing Gemini-embedded vectors are never overwritten.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -143,6 +145,9 @@ class RAGService:
         self._vectorstore = None
         self._text_splitter = None
         self._initialized = False
+        
+        # Thread pool for CPU-bound operations (embedding, search)
+        self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="rag-worker")
 
         logger.info(
             "RAGService created | vector_db=%s | %d docs in index",
@@ -375,15 +380,76 @@ class RAGService:
             return []
 
         try:
+            logger.debug(f"Starting semantic search: query='{query[:60]}...' k={k} fetch_k={fetch_k}")
+            
             retriever = self._vectorstore.as_retriever(
                 search_type="mmr",
                 search_kwargs={"k": k, "fetch_k": fetch_k, "lambda_mult": 0.5},
             )
             docs = retriever.invoke(query)
-            logger.debug("MMR search returned %d docs for query: %s", len(docs), query[:60])
+            
+            logger.debug(
+                f"MMR search returned {len(docs)} docs for query: {query[:60]} | "
+                f"top result source: {docs[0].metadata.get('source', 'unknown') if docs else 'N/A'}"
+            )
+            
+            if not docs:
+                logger.warning(
+                    f"Search returned zero results for query '{query[:60]}' - "
+                    f"this may indicate embeddings or index issues"
+                )
+            
             return docs
         except Exception as exc:
-            logger.error("RAG search failed: %s", exc, exc_info=True)
+            logger.error(f"RAG search failed for query '{query[:60]}': {exc}", exc_info=True)
+            return []
+
+    async def async_search(
+        self,
+        query: str,
+        k: Optional[int] = None,
+        fetch_k: Optional[int] = None,
+        timeout_secs: float = 15.0,
+    ) -> List[Any]:
+        """
+        Async wrapper around search() with timeout protection.
+
+        CPU-bound embedding/search ops run in thread pool to avoid blocking event loop.
+
+        Args:
+            query:          User query string.
+            k:              Number of final documents to return.
+            fetch_k:        Candidate pool size for MMR re-ranking.
+            timeout_secs:   Max seconds to wait (default 15s).
+
+        Returns:
+            List of Document objects, or empty list on timeout/error.
+
+        Raises:
+            asyncio.TimeoutError if search exceeds timeout_secs.
+        """
+        loop = asyncio.get_event_loop()
+        try:
+            docs = await asyncio.wait_for(
+                loop.run_in_executor(
+                    self._executor,
+                    self.search,
+                    query,
+                    k,
+                    fetch_k,
+                ),
+                timeout=timeout_secs,
+            )
+            return docs
+        except asyncio.TimeoutError:
+            logger.warning(
+                "RAG search timed out after %.1f seconds for query: %s",
+                timeout_secs,
+                query[:60],
+            )
+            raise
+        except Exception as exc:
+            logger.error("Async RAG search failed: %s", exc, exc_info=True)
             return []
 
     def list_documents(self) -> List[Dict[str, Any]]:
